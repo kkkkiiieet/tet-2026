@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tet 2026 - Pháo Hoa Rực Rỡ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; }
+
+        /* Canvas pháo hoa */
+        #fireworksCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1; /* Nằm trên nền nhưng dưới nút */
+            pointer-events: none;
+        }
+
+        .background-container {
+            background-image: url('DesignmeabackgroundofaTetholidaypresentation.jpg'); 
+            background-size: cover; background-position: center;
+            height: 100vh; width: 100%;
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            position: relative;
+        }
+
+        .main-title {
+            margin-top: 50px; color: #ffcc00; font-family: 'Dancing Script', cursive;
+            font-size: 4em; text-align: center; text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.7);
+            z-index: 2;
+        }
+
+        .button-group { display: flex; gap: 100px; margin-bottom: 100px; z-index: 10; }
+
+        .image-button { background: none; border: none; cursor: pointer; outline: none; text-align: center; }
+        .image-button img { width: 170px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); transition: 0.2s; }
+        .image-button:hover img { transform: scale(1.1); }
+        .label { color: white; display: block; margin-top: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-12px) rotate(-2deg); }
+            50% { transform: translateX(12px) rotate(2deg); }
+            75% { transform: translateX(-12px) rotate(-2deg); }
+            100% { transform: translateX(0); }
+        }
+        .shake { animation: shake 0.15s 3; }
+
+        #scroll-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); display: none;
+            justify-content: center; align-items: center; z-index: 100; cursor: pointer;
+        }
+
+        .scroll-content {
+            position: relative; width: 550px; max-width: 90%;
+            animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+
+        .scroll-image { width: 100%; height: auto; mix-blend-mode: screen; filter: contrast(120%); }
+
+        .scroll-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60%; text-align: center; font-family: 'Dancing Script', cursive;
+            color: #ffcc00; font-size: 38px; line-height: 1.4;
+            text-shadow: 2px 2px 0px #8b0000, 4px 4px 10px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body onclick="closePopup()">
+
+    <div class="background-container">
+        <canvas id="fireworksCanvas"></canvas>
+
+        <h1 class="main-title">Chúc Mừng Năm Mới 2026</h1>
+
+        <div class="button-group">
+            <button class="image-button" onclick="showWish('male', event)">
+                <img src="Untitled_design-removebg-preview.png" alt="Rồng">
+                <span class="label">DÀNH CHO NAM</span>
+            </button>
+            <button class="image-button" onclick="showWish('female', event)">
+                <img src="Untitled_design__1_-removebg-preview.png" alt="Phượng">
+                <span class="label">DÀNH CHO NỮ</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="scroll-overlay">
+        <div class="scroll-content">
+            <img src="pngtree-chinese-new-year-couplets-png-image_5542739.jpg" class="scroll-image">
+            <div class="scroll-text" id="wish-text"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- LOGIC PHÁO HOA ---
+        const canvas = document.getElementById('fireworksCanvas');
+        const ctx = canvas.getContext('2d');
+        let fireworks = [];
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.velocity = { x: (Math.random() - 0.5) * 8, y: (Math.random() - 0.5) * 8 };
+                this.alpha = 1; this.friction = 0.95;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath(); ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = this.color; ctx.fill();
+            }
+            update() {
+                this.velocity.x *= this.friction; this.velocity.y *= this.friction;
+                this.x += this.velocity.x; this.y += this.velocity.y;
+                this.alpha -= 0.01;
+            }
+        }
+
+        function createFirework() {
+            const x = Math.random() * canvas.width;
+            const y = canvas.height;
+            const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            const targetY = Math.random() * (canvas.height / 2);
+            fireworks.push({ x, y, targetY, color, exploded: false });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (Math.random() < 0.05) createFirework();
+
+            fireworks.forEach((f, i) => {
+                f.y -= 10;
+                if (f.y <= f.targetY) {
+                    for (let j = 0; j < 50; j++) particles.push(new Particle(f.x, f.y, f.color));
+                    fireworks.splice(i, 1);
+                } else {
+                    ctx.fillStyle = f.color; ctx.fillRect(f.x, f.y, 3, 15);
+                }
+            });
+
+            particles.forEach((p, i) => {
+                if (p.alpha <= 0) particles.splice(i, 1);
+                else { p.update(); p.draw(); }
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- LOGIC LỜI CHÚC ---
+        const wishesMale = ["Chúc bạn năm mới sức khỏe dồi dào, luôn giữ được sự tập trung cao độ để chinh phục mọi kỳ thi sắp tới nhé.", "Sang năm mới, chúc bạn học hành tấn tới, quyết tâm cao độ và đỗ đúng vào ngôi trường đại học mà bạn hằng mơ ước.", "Chúc bạn năm mới trưởng thành hơn, bản lĩnh hơn, là chỗ dựa vững chắc cho gia đình và luôn kiên trì với mục tiêu của mình.", "Chúc bạn năm mới vạn sự như ý công việc học tập hanh thông và luôn giữ được phong độ vững vàng.","Chúc bạn năm nay gặt hái được nhiều thành tích cao, không chỉ trong học tập mà còn trong các hoạt động ngoại khóa nữa nhé.","Sang năm mới, chúc bạn có thêm nhiều ý chí và nghị lực để vượt qua những áp lực của năm cuối cấp này.","Chúc bạn luôn tự tin vào bản thân, sớm xác định được con đường tương lai và nỗ lực hết mình vì nó.", "Năm mới chúc bạn có thêm nhiều trải nghiệm quý giá, gặp gỡ những người bạn tốt và luôn giữ vững tinh thần lạc quan.","Chúc bạn năm mới vui vẻ, nhận được nhiều lì xì và luôn là một người đáng tin cậy của lớp.","Chúc bạn có một năm mới rực rỡ, thi cử suôn sẻ, điểm số cải thiện và luôn giữ được tinh thần lạc quan.","Năm mới đến, chúc bạn và gia đình an khang thịnh vượng, riêng bạn thì học một hiểu mười, thi đâu trúng đó."];
+        const wishesFemale = ["Chúc bạn năm mới luôn xinh đẹp, dịu dàng và đạt được kết quả học tập thật tốt để làm quà tặng bố mẹ.", "Sang năm mới, chúc bạn luôn giữ được sự bình tĩnh, tự tin để hoàn thành xuất sắc các kỳ thi quan trọng sắp tới.", "Chúc bạn một năm mới tràn đầy niềm vui, học hành nhẹ nhàng nhưng hiệu quả và luôn gặp may mắn trong cuộc sống.", "Chúc bạn năm mới vạn sự khởi đầu nan, mọi dự định trong học tập và công việc cá nhân đều thành công tốt đẹp.","Chúc bạn luôn chăm chỉ, thông minh và sớm nhận được giấy báo nhập học từ ngôi trường bạn yêu thích.","Sang năm mới, chúc bạn và gia đình bình an, hạnh phúc. Chúc bạn luôn tỏa sáng với tài năng và sự nỗ lực của mình.","Chúc bạn năm mới gặt hái được nhiều điểm 9, điểm 10, thi cử đỗ đạt và luôn là niềm tự hào của lớp.","Chúc bạn năm mới ngày càng trưởng thành, xinh đẹp và có đủ bản lĩnh để thực hiện những ước mơ của riêng mình.","Chúc bà một năm mới rạng rỡ, mọi kỳ thi đều vượt vũ môn thành công và luôn bình an trong cuộc sống.","Năm mới chúc bà da trắng dáng xinh, tinh thần luôn vui vẻ, không lo âu, không phiền muộn."];
+
+        function showWish(gender, event) {
+            event.stopPropagation();
+            const btn = event.currentTarget;
+            btn.classList.add('shake');
+            setTimeout(() => {
+                btn.classList.remove('shake');
+                let list = (gender === 'male') ? wishesMale : wishesFemale;
+                document.getElementById('wish-text').innerHTML = list[Math.floor(Math.random() * list.length)];
+                document.getElementById('scroll-overlay').style.display = 'flex';
+            }, 450);
+        }
+
+        function closePopup() { document.getElementById('scroll-overlay').style.display = 'none'; }
+    </script>
+</body>
+</html>
